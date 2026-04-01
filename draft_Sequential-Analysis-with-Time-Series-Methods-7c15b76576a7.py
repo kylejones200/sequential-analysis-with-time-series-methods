@@ -105,4 +105,4 @@ test_sequence = tf.keras.preprocessing.sequence.pad_sequences(test_sequence, max
 prediction = model.predict(test_sequence)
 logger.info("Predicted Next Move:", prediction.argmax())
 
-Predicted Next Move: 6
+# Predicted Next Move: 6
