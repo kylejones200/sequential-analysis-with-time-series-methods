@@ -1,0 +1,15 @@
+data:
+  seed: 42
+  test_size: 0.3
+model:
+  n_estimators: 100
+  distance: 20
+  alpha: 0.5
+output:
+  figures_dir: images
+  figure_format: png
+  figure_dpi: 150
+  font_family: serif
+  figsize:
+  - 10
+  - 3

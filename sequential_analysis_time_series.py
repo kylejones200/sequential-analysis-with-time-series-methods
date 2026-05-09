@@ -12,7 +12,27 @@ from sklearn.metrics import accuracy_score, roc_auc_score, silhouette_score, con
 from sklearn.preprocessing import StandardScaler
 from typing import Tuple
 
-np.random.seed(42)
+import logging
+
+from pathlib import Path
+import yaml
+
+
+def load_config(config_path=None):
+    """Load configuration from YAML file."""
+    if config_path is None:
+        config_path = Path(__file__).parent / 'config.yaml'
+    if not config_path.exists():
+        return {}
+    with open(config_path) as _f:
+        return _yaml.safe_load(_f) or {}
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+np.random.seed(config.get('data', {}).get('seed', 42))
 plt.rcParams.update({
     'font.family': 'serif',
     'axes.spines.top': False,
@@ -54,7 +74,7 @@ def analyze_golf_swing():
     dtw_dists = [dtw_distance(swings_pro[0], s) for s in [*swings_pro[1:20], *swings_amateur[:20]]]
     labels = ['Pro']*19 + ['Amateur']*20
     
-    fig, axes = plt.subplots(1, 2, figsize=(10, 3))
+    fig, axes = plt.subplots(1, 2, figsize=tuple(config.get('output', {}).get('figsize', [10, 3])))
     
     axes[0].plot(pro_sm, label='Professional', linewidth=1.5, color='#2c3e50')
     axes[0].plot(amateur_sm, label='Amateur', linewidth=1.5, color='#e74c3c', linestyle='--')
@@ -72,7 +92,7 @@ def analyze_golf_swing():
     
     save_fig('sequential_golf_swing.png')
     
-    print(f"Golf Swing DTW: {dtw_distance(pro_sm, amateur_sm):.0f}")
+    logger.info(f"Golf Swing DTW: {dtw_distance(pro_sm, amateur_sm):.0f}")
 
 def generate_wine_spectra(n: int) -> Tuple[np.ndarray, np.ndarray]:
     wl = np.linspace(800, 2500, 200)
@@ -108,7 +128,7 @@ def analyze_wine_spectra():
     acc = accuracy_score(y_test, clf.predict(X_test))
     auc = roc_auc_score(y_test, clf.predict_proba(X_test)[:, 1])
     
-    fig, axes = plt.subplots(1, 2, figsize=(10, 3))
+    fig, axes = plt.subplots(1, 2, figsize=tuple(config.get('output', {}).get('figsize', [10, 3])))
     
     axes[0].plot(X[y == 0].mean(axis=0), label='Red', linewidth=1.5, color='#c0392b')
     axes[0].plot(X[y == 1].mean(axis=0), label='White', linewidth=1.5, color='#f39c12')
@@ -125,7 +145,7 @@ def analyze_wine_spectra():
     
     save_fig('sequential_wine_spectra.png')
     
-    print(f"Wine Classification Acc: {acc:.3f}, AUC: {auc:.3f}")
+    logger.info(f"Wine Classification Acc: {acc:.3f}, AUC: {auc:.3f}")
 
 def generate_chess_sequences(n: int, seq_len: int) -> Tuple[np.ndarray, np.ndarray]:
     X, y = [], []
@@ -154,7 +174,7 @@ def analyze_chess_sequences():
     clf.fit(X_train, y_train)
     acc = accuracy_score(y_test, clf.predict(X_test))
     
-    fig, axes = plt.subplots(1, 2, figsize=(10, 3))
+    fig, axes = plt.subplots(1, 2, figsize=tuple(config.get('output', {}).get('figsize', [10, 3])))
     
     for i in range(5):
         axes[0].plot(X[i], alpha=0.5, linewidth=1, color='#7f8c8d')
@@ -169,7 +189,7 @@ def analyze_chess_sequences():
     
     save_fig('sequential_chess_moves.png')
     
-    print(f"Chess Move Prediction Acc: {acc:.3f}")
+    logger.info(f"Chess Move Prediction Acc: {acc:.3f}")
 
 def generate_protein_data(n: int, length: int) -> Tuple[list, list]:
     amino_acids = list('ACDEFGHIKLMNPQRSTVWY')
@@ -212,7 +232,7 @@ def analyze_protein_structure():
     counts = pd.Series(y_train).value_counts().sort_index()
     colors = ['#95a5a6', '#e74c3c', '#3498db']
     
-    fig, axes = plt.subplots(1, 2, figsize=(10, 3))
+    fig, axes = plt.subplots(1, 2, figsize=tuple(config.get('output', {}).get('figsize', [10, 3])))
     
     axes[0].bar(struct_names, [counts.get(i, 0) for i in range(3)], color=colors, width=0.6)
     axes[0].set_ylabel('Count')
@@ -225,7 +245,7 @@ def analyze_protein_structure():
     
     save_fig('sequential_protein_structure.png')
     
-    print(f"Protein Structure Acc: {acc:.3f}")
+    logger.info(f"Protein Structure Acc: {acc:.3f}")
 
 def generate_process_data(n: int, seq_len: int) -> Tuple[np.ndarray, np.ndarray]:
     sequences, labels = [], []
@@ -290,7 +310,7 @@ def analyze_industrial_process():
     from sklearn.metrics import precision_score, recall_score
     prec, rec = precision_score(y, y_pred), recall_score(y, y_pred)
     
-    fig, axes = plt.subplots(1, 2, figsize=(10, 3))
+    fig, axes = plt.subplots(1, 2, figsize=tuple(config.get('output', {}).get('figsize', [10, 3])))
     
     normal_idx, anom_idx = np.where(y == 0)[0][0], np.where(y == 1)[0][0]
     for idx, ax, label in [(normal_idx, axes[0], 'Normal'), (anom_idx, axes[1], 'Anomaly')]:
@@ -305,10 +325,10 @@ def analyze_industrial_process():
     
     save_fig('sequential_industrial_process.png')
     
-    print(f"Anomaly Detection Acc: {acc:.3f}, Prec: {prec:.3f}, Rec: {rec:.3f}")
+    logger.info(f"Anomaly Detection Acc: {acc:.3f}, Prec: {prec:.3f}, Rec: {rec:.3f}")
 
 def main():
-    print("\nSequential Analysis with Time Series Methods\n")
+    logger.info("\nSequential Analysis with Time Series Methods\n")
     
     analyze_golf_swing()
     analyze_wine_spectra()
@@ -316,7 +336,7 @@ def main():
     analyze_protein_structure()
     analyze_industrial_process()
     
-    print("\nOutputs: 5 PNG files\n")
+    logger.info("\nOutputs: 5 PNG files\n")
 
 if __name__ == "__main__":
     main()
