@@ -66,7 +66,7 @@ def generate_swings(n: int) -> Tuple[np.ndarray, np.ndarray]:
     amateur = np.array([90 + 30*np.sin(t*np.random.uniform(0.8, 1.2)) + np.random.randn(100)*4 for _ in range(n)])
     return pro, amateur
 
-def analyze_golf_swing():
+def analyze_golf_swing(plot: bool = False):
     swings_pro, swings_amateur = generate_swings(50)
     pro, amateur = swings_pro[0], swings_amateur[0]
     pro_sm, amateur_sm = savgol_filter(pro, 11, 2), savgol_filter(amateur, 11, 2)
@@ -74,23 +74,24 @@ def analyze_golf_swing():
     dtw_dists = [dtw_distance(swings_pro[0], s) for s in [*swings_pro[1:20], *swings_amateur[:20]]]
     labels = ['Pro']*19 + ['Amateur']*20
     
-    fig, axes = plt.subplots(1, 2, figsize=tuple(config.get('output', {}).get('figsize', [10, 3])))
+    if plot:
+        fig, axes = plt.subplots(1, 2, figsize=tuple(config.get('output', {}).get('figsize', [10, 3])))
     
-    axes[0].plot(pro_sm, label='Professional', linewidth=1.5, color='#2c3e50')
-    axes[0].plot(amateur_sm, label='Amateur', linewidth=1.5, color='#e74c3c', linestyle='--')
-    axes[0].set_xlabel('Frame')
-    axes[0].set_ylabel('Hip Angle (°)')
-    axes[0].legend(frameon=False)
+        axes[0].plot(pro_sm, label='Professional', linewidth=1.5, color='#2c3e50')
+        axes[0].plot(amateur_sm, label='Amateur', linewidth=1.5, color='#e74c3c', linestyle='--')
+        axes[0].set_xlabel('Frame')
+        axes[0].set_ylabel('Hip Angle (°)')
+        axes[0].legend(frameon=False)
     
-    bp = axes[1].boxplot([dtw_dists[:19], dtw_dists[19:]], widths=0.5, patch_artist=True,
-                          boxprops=dict(facecolor='#ecf0f1', color='#2c3e50'),
-                          medianprops=dict(color='#e74c3c', linewidth=1.5),
-                          whiskerprops=dict(color='#2c3e50'),
-                          capprops=dict(color='#2c3e50'))
-    axes[1].set_xticklabels(['Pro vs Pro', 'Pro vs Amateur'])
-    axes[1].set_ylabel('DTW Distance')
+        bp = axes[1].boxplot([dtw_dists[:19], dtw_dists[19:]], widths=0.5, patch_artist=True,
+                              boxprops=dict(facecolor='#ecf0f1', color='#2c3e50'),
+                              medianprops=dict(color='#e74c3c', linewidth=1.5),
+                              whiskerprops=dict(color='#2c3e50'),
+                              capprops=dict(color='#2c3e50'))
+        axes[1].set_xticklabels(['Pro vs Pro', 'Pro vs Amateur'])
+        axes[1].set_ylabel('DTW Distance')
     
-    save_fig('sequential_golf_swing.png')
+        save_fig('sequential_golf_swing.png')
     
     logger.info(f"Golf Swing DTW: {dtw_distance(pro_sm, amateur_sm):.0f}")
 
@@ -118,7 +119,7 @@ def extract_spectral_features(X: np.ndarray) -> pd.DataFrame:
         })
     return pd.DataFrame(features)
 
-def analyze_wine_spectra():
+def analyze_wine_spectra(plot: bool = False):
     X, y = generate_wine_spectra(200)
     X_feat = extract_spectral_features(X)
     X_train, X_test, y_train, y_test = train_test_split(X_feat, y, test_size=0.3, random_state=42)
@@ -128,22 +129,23 @@ def analyze_wine_spectra():
     acc = accuracy_score(y_test, clf.predict(X_test))
     auc = roc_auc_score(y_test, clf.predict_proba(X_test)[:, 1])
     
-    fig, axes = plt.subplots(1, 2, figsize=tuple(config.get('output', {}).get('figsize', [10, 3])))
+    if plot:
+        fig, axes = plt.subplots(1, 2, figsize=tuple(config.get('output', {}).get('figsize', [10, 3])))
     
-    axes[0].plot(X[y == 0].mean(axis=0), label='Red', linewidth=1.5, color='#c0392b')
-    axes[0].plot(X[y == 1].mean(axis=0), label='White', linewidth=1.5, color='#f39c12')
-    axes[0].set_xlabel('Wavelength Index')
-    axes[0].set_ylabel('Absorbance')
-    axes[0].legend(frameon=False)
+        axes[0].plot(X[y == 0].mean(axis=0), label='Red', linewidth=1.5, color='#c0392b')
+        axes[0].plot(X[y == 1].mean(axis=0), label='White', linewidth=1.5, color='#f39c12')
+        axes[0].set_xlabel('Wavelength Index')
+        axes[0].set_ylabel('Absorbance')
+        axes[0].legend(frameon=False)
     
-    feat_imp = pd.Series(clf.feature_importances_, index=X_feat.columns).nlargest(4)
-    axes[1].barh(range(len(feat_imp)), feat_imp.values, color='#34495e', height=0.6)
-    axes[1].set_yticks(range(len(feat_imp)))
-    axes[1].set_yticklabels(feat_imp.index)
-    axes[1].set_xlabel('Importance')
-    axes[1].invert_yaxis()
+        feat_imp = pd.Series(clf.feature_importances_, index=X_feat.columns).nlargest(4)
+        axes[1].barh(range(len(feat_imp)), feat_imp.values, color='#34495e', height=0.6)
+        axes[1].set_yticks(range(len(feat_imp)))
+        axes[1].set_yticklabels(feat_imp.index)
+        axes[1].set_xlabel('Importance')
+        axes[1].invert_yaxis()
     
-    save_fig('sequential_wine_spectra.png')
+        save_fig('sequential_wine_spectra.png')
     
     logger.info(f"Wine Classification Acc: {acc:.3f}, AUC: {auc:.3f}")
 
@@ -157,7 +159,7 @@ def generate_chess_sequences(n: int, seq_len: int) -> Tuple[np.ndarray, np.ndarr
         y.append(seq[-1])
     return np.array(X), np.array(y)
 
-def analyze_chess_sequences():
+def analyze_chess_sequences(plot: bool = False):
     X, y = generate_chess_sequences(500, 20)
     
     X_feat = pd.DataFrame({
@@ -174,20 +176,21 @@ def analyze_chess_sequences():
     clf.fit(X_train, y_train)
     acc = accuracy_score(y_test, clf.predict(X_test))
     
-    fig, axes = plt.subplots(1, 2, figsize=tuple(config.get('output', {}).get('figsize', [10, 3])))
+    if plot:
+        fig, axes = plt.subplots(1, 2, figsize=tuple(config.get('output', {}).get('figsize', [10, 3])))
     
-    for i in range(5):
-        axes[0].plot(X[i], alpha=0.5, linewidth=1, color='#7f8c8d')
-    axes[0].set_xlabel('Move Number')
-    axes[0].set_ylabel('Move ID')
+        for i in range(5):
+            axes[0].plot(X[i], alpha=0.5, linewidth=1, color='#7f8c8d')
+        axes[0].set_xlabel('Move Number')
+        axes[0].set_ylabel('Move ID')
     
-    feat_imp = pd.Series(clf.feature_importances_, index=X_feat.columns).sort_values(ascending=True)
-    axes[1].barh(range(len(feat_imp)), feat_imp.values, color='#27ae60', height=0.6)
-    axes[1].set_yticks(range(len(feat_imp)))
-    axes[1].set_yticklabels(feat_imp.index)
-    axes[1].set_xlabel('Importance')
+        feat_imp = pd.Series(clf.feature_importances_, index=X_feat.columns).sort_values(ascending=True)
+        axes[1].barh(range(len(feat_imp)), feat_imp.values, color='#27ae60', height=0.6)
+        axes[1].set_yticks(range(len(feat_imp)))
+        axes[1].set_yticklabels(feat_imp.index)
+        axes[1].set_xlabel('Importance')
     
-    save_fig('sequential_chess_moves.png')
+        save_fig('sequential_chess_moves.png')
     
     logger.info(f"Chess Move Prediction Acc: {acc:.3f}")
 
@@ -208,7 +211,7 @@ def generate_protein_data(n: int, length: int) -> Tuple[list, list]:
 def encode_aa(aa: str) -> int:
     return 'ACDEFGHIKLMNPQRSTVWY'.index(aa) if aa in 'ACDEFGHIKLMNPQRSTVWY' else 0
 
-def analyze_protein_structure():
+def analyze_protein_structure(plot: bool = False):
     sequences, structures = generate_protein_data(200, 50)
     
     X = np.array([[encode_aa(aa) for aa in seq] for seq in sequences])
@@ -232,18 +235,19 @@ def analyze_protein_structure():
     counts = pd.Series(y_train).value_counts().sort_index()
     colors = ['#95a5a6', '#e74c3c', '#3498db']
     
-    fig, axes = plt.subplots(1, 2, figsize=tuple(config.get('output', {}).get('figsize', [10, 3])))
+    if plot:
+        fig, axes = plt.subplots(1, 2, figsize=tuple(config.get('output', {}).get('figsize', [10, 3])))
     
-    axes[0].bar(struct_names, [counts.get(i, 0) for i in range(3)], color=colors, width=0.6)
-    axes[0].set_ylabel('Count')
+        axes[0].bar(struct_names, [counts.get(i, 0) for i in range(3)], color=colors, width=0.6)
+        axes[0].set_ylabel('Count')
     
-    feat_imp = pd.Series(clf.feature_importances_, index=X_feat.columns).sort_values(ascending=True)
-    axes[1].barh(range(len(feat_imp)), feat_imp.values, color='#9b59b6', height=0.6)
-    axes[1].set_yticks(range(len(feat_imp)))
-    axes[1].set_yticklabels(feat_imp.index)
-    axes[1].set_xlabel('Importance')
+        feat_imp = pd.Series(clf.feature_importances_, index=X_feat.columns).sort_values(ascending=True)
+        axes[1].barh(range(len(feat_imp)), feat_imp.values, color='#9b59b6', height=0.6)
+        axes[1].set_yticks(range(len(feat_imp)))
+        axes[1].set_yticklabels(feat_imp.index)
+        axes[1].set_xlabel('Importance')
     
-    save_fig('sequential_protein_structure.png')
+        save_fig('sequential_protein_structure.png')
     
     logger.info(f"Protein Structure Acc: {acc:.3f}")
 
@@ -294,7 +298,7 @@ def extract_process_features(X: np.ndarray) -> pd.DataFrame:
         })
     return pd.DataFrame(features)
 
-def analyze_industrial_process():
+def analyze_industrial_process(plot: bool = False):
     X, y = generate_process_data(500, 100)
     X_feat = extract_process_features(X)
     
@@ -310,20 +314,21 @@ def analyze_industrial_process():
     from sklearn.metrics import precision_score, recall_score
     prec, rec = precision_score(y, y_pred), recall_score(y, y_pred)
     
-    fig, axes = plt.subplots(1, 2, figsize=tuple(config.get('output', {}).get('figsize', [10, 3])))
+    if plot:
+        fig, axes = plt.subplots(1, 2, figsize=tuple(config.get('output', {}).get('figsize', [10, 3])))
     
-    normal_idx, anom_idx = np.where(y == 0)[0][0], np.where(y == 1)[0][0]
-    for idx, ax, label in [(normal_idx, axes[0], 'Normal'), (anom_idx, axes[1], 'Anomaly')]:
-        ax.plot(X[idx][:, 0], linewidth=1, label='Temp', color='#e74c3c')
-        ax.plot(X[idx][:, 1], linewidth=1, label='Pressure', color='#3498db')
-        ax.plot(X[idx][:, 2], linewidth=1, label='Flow', color='#2ecc71')
-        ax.set_title(label)
-        ax.set_xlabel('Time')
-        if idx == normal_idx:
-            ax.set_ylabel('Sensor Value')
-            ax.legend(frameon=False, loc='upper right', fontsize=8)
+        normal_idx, anom_idx = np.where(y == 0)[0][0], np.where(y == 1)[0][0]
+        for idx, ax, label in [(normal_idx, axes[0], 'Normal'), (anom_idx, axes[1], 'Anomaly')]:
+            ax.plot(X[idx][:, 0], linewidth=1, label='Temp', color='#e74c3c')
+            ax.plot(X[idx][:, 1], linewidth=1, label='Pressure', color='#3498db')
+            ax.plot(X[idx][:, 2], linewidth=1, label='Flow', color='#2ecc71')
+            ax.set_title(label)
+            ax.set_xlabel('Time')
+            if idx == normal_idx:
+                ax.set_ylabel('Sensor Value')
+                ax.legend(frameon=False, loc='upper right', fontsize=8)
     
-    save_fig('sequential_industrial_process.png')
+        save_fig('sequential_industrial_process.png')
     
     logger.info(f"Anomaly Detection Acc: {acc:.3f}, Prec: {prec:.3f}, Rec: {rec:.3f}")
 
