@@ -2,6 +2,7 @@
 Sequential Analysis with Time Series Methods
 """
 
+import signalplot
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -33,23 +34,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 np.random.seed(config.get('data', {}).get('seed', 42))
-plt.rcParams.update({
-    'font.family': 'serif',
-    'axes.spines.top': False,
-    'axes.spines.right': False,
-    'axes.linewidth': 0.5,
-    'axes.edgecolor': '#333333',
-    'axes.labelcolor': '#333333',
-    'text.color': '#333333',
-    'xtick.color': '#333333',
-    'ytick.color': '#333333',
-    'font.size': 9
-})
+signalplot.apply(font_family='serif')
 
-def save_fig(path: str):
-    plt.tight_layout()
-    plt.savefig(path, bbox_inches='tight', dpi=150)
-    plt.close()
 
 def dtw_distance(seq1: np.ndarray, seq2: np.ndarray) -> float:
     n, m = len(seq1), len(seq2)
@@ -91,7 +77,7 @@ def analyze_golf_swing(plot: bool = False):
         axes[1].set_xticklabels(['Pro vs Pro', 'Pro vs Amateur'])
         axes[1].set_ylabel('DTW Distance')
     
-        save_fig('sequential_golf_swing.png')
+        signalplot.save('sequential_golf_swing.png')
     
     logger.info(f"Golf Swing DTW: {dtw_distance(pro_sm, amateur_sm):.0f}")
 
@@ -145,7 +131,7 @@ def analyze_wine_spectra(plot: bool = False):
         axes[1].set_xlabel('Importance')
         axes[1].invert_yaxis()
     
-        save_fig('sequential_wine_spectra.png')
+        signalplot.save('sequential_wine_spectra.png')
     
     logger.info(f"Wine Classification Acc: {acc:.3f}, AUC: {auc:.3f}")
 
@@ -190,7 +176,7 @@ def analyze_chess_sequences(plot: bool = False):
         axes[1].set_yticklabels(feat_imp.index)
         axes[1].set_xlabel('Importance')
     
-        save_fig('sequential_chess_moves.png')
+        signalplot.save('sequential_chess_moves.png')
     
     logger.info(f"Chess Move Prediction Acc: {acc:.3f}")
 
@@ -247,7 +233,7 @@ def analyze_protein_structure(plot: bool = False):
         axes[1].set_yticklabels(feat_imp.index)
         axes[1].set_xlabel('Importance')
     
-        save_fig('sequential_protein_structure.png')
+        signalplot.save('sequential_protein_structure.png')
     
     logger.info(f"Protein Structure Acc: {acc:.3f}")
 
@@ -328,7 +314,7 @@ def analyze_industrial_process(plot: bool = False):
                 ax.set_ylabel('Sensor Value')
                 ax.legend(frameon=False, loc='upper right', fontsize=8)
     
-        save_fig('sequential_industrial_process.png')
+        signalplot.save('sequential_industrial_process.png')
     
     logger.info(f"Anomaly Detection Acc: {acc:.3f}, Prec: {prec:.3f}, Rec: {rec:.3f}")
 
