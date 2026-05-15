@@ -1,19 +1,73 @@
 # Description: Short example for Sequential Analysis with Time Series Methods.
 
 
+import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader, TensorDataset
 import logging
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import tensorflow as tf
 from scipy.signal import savgol_filter
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import TimeSeriesSplit
-from tensorflow.keras.layers import LSTM, Dense, Embedding
-from tensorflow.keras.models import Sequential
 
+
+class _LSTMForecaster(nn.Module):
+    """LSTM forecaster (auto-generated PyTorch replacement for Keras Sequential)."""
+    def __init__(self, n_features: int, hidden: int = 32, output_size: int = 7,
+                 n_layers: int = 1, dropout: float = 0.0):
+        super().__init__()
+        self.lstm = nn.LSTM(n_features, hidden, num_layers=n_layers,
+                            batch_first=True, dropout=dropout if n_layers > 1 else 0)
+        self.drop = nn.Dropout(dropout)
+        self.fc = nn.Linear(hidden, output_size)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        out, _ = self.lstm(x)
+        return self.fc(self.drop(out[:, -1, :]))
+
+def _train_torch(model: nn.Module, X_train, y_train, *,
+                 epochs: int = 50, batch_size: int = 32,
+                 lr: float = 0.001, validation_split: float = 0.2,
+                 patience: int = 15) -> nn.Module:
+    """Standard training loop replacing  + model.fit()."""
+    X_t = torch.FloatTensor(X_train)
+    y_t = torch.FloatTensor(y_train)
+    if y_t.dim() == 1:
+        y_t = y_t.unsqueeze(1)
+    n_val = max(1, int(len(X_t) * validation_split))
+    X_val, y_val = X_t[-n_val:], y_t[-n_val:]
+    X_tr, y_tr = X_t[:-n_val], y_t[:-n_val]
+    loader = DataLoader(TensorDataset(X_tr, y_tr), batch_size=batch_size, shuffle=True)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    criterion = nn.MSELoss()
+    best, wait = float("inf"), 0
+    for _ in range(epochs):
+        model.train()
+        for xb, yb in loader:
+            optimizer.zero_grad()
+            criterion(model(xb), yb).backward()
+            optimizer.step()
+        model.eval()
+        with torch.no_grad():
+            val_loss = criterion(model(X_val), y_val).item()
+        if val_loss < best:
+            best, wait = val_loss, 0
+        else:
+            wait += 1
+            if wait >= patience:
+                break
+    return model
+
+
+def _predict_torch(model: nn.Module, X_test) -> "np.ndarray":
+    """Replace model.predict()."""
+    model.eval()
+    with torch.no_grad():
+        return model(torch.FloatTensor(X_test)).numpy()
 
 def main():
     logger = logging.getLogger(__name__)
@@ -72,9 +126,9 @@ def main():
     y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
 
     model = RandomForestClassifier()
-    model.fit(X_train, y_train)
+    _train_torch(model, X_train, y_train)
 
-    y_pred = model.predict(X_test)
+    y_pred = _predict_torch(model, X_test)
     logger.info(f"Accuracy: {accuracy_score(y_test, y_pred)}")
 
     """
@@ -88,22 +142,21 @@ def main():
     next_moves = [6, 1, 6]  # Next move in each sequence
 
     # Prepare data
-    X = tf.keras.preprocessing.sequence.pad_sequences(chess_sequences, maxlen=5)
-    y = tf.keras.utils.to_categorical(next_moves, num_classes=7)
+    X = preprocessing.sequence.pad_sequences(chess_sequences, maxlen=5)
+    y = utils.to_categorical(next_moves, num_classes=7)
 
     # Define model
     model = Sequential(
         [Embedding(input_dim=7, output_dim=4), LSTM(32), Dense(7, activation="softmax")]
     )
-    model.compile(optimizer="adam", loss="categorical_crossentropy", metrics=["accuracy"])
-
+    
     # Train model
-    model.fit(X, y, epochs=10, verbose=0)
+    _train_torch(model, X, y)
 
     # Predict next move
     test_sequence = [[1, 2, 3, 4, 0]]  # New game sequence
-    test_sequence = tf.keras.preprocessing.sequence.pad_sequences(test_sequence, maxlen=5)
-    prediction = model.predict(test_sequence)
+    test_sequence = preprocessing.sequence.pad_sequences(test_sequence, maxlen=5)
+    prediction = _predict_torch(model, test_sequence)
     logger.info("Predicted Next Move:", prediction.argmax())
 
     # Predicted Next Move: 6
