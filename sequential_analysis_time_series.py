@@ -9,14 +9,12 @@ import matplotlib.pyplot as plt
 from scipy.signal import savgol_filter, find_peaks
 from sklearn.ensemble import RandomForestClassifier, IsolationForest
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, roc_auc_score, silhouette_score, confusion_matrix
+from sklearn.metrics import accuracy_score, roc_auc_score
 from sklearn.preprocessing import StandardScaler
-from typing import Tuple
 
 import logging
 
 from pathlib import Path
-import yaml
 
 
 def load_config(config_path=None):
@@ -46,7 +44,7 @@ def dtw_distance(seq1: np.ndarray, seq2: np.ndarray) -> float:
             dtw[i, j] = abs(seq1[i-1] - seq2[j-1]) + min(dtw[i-1, j], dtw[i, j-1], dtw[i-1, j-1])
     return dtw[n, m]
 
-def generate_swings(n: int) -> Tuple[np.ndarray, np.ndarray]:
+def generate_swings(n: int) -> tuple[np.ndarray, np.ndarray]:
     t = np.linspace(0, 2*np.pi, 100)
     pro = np.array([90 + 30*np.sin(t) + np.random.randn(100)*1.5 for _ in range(n)])
     amateur = np.array([90 + 30*np.sin(t*np.random.uniform(0.8, 1.2)) + np.random.randn(100)*4 for _ in range(n)])
@@ -58,7 +56,7 @@ def analyze_golf_swing(plot: bool = False):
     pro_sm, amateur_sm = savgol_filter(pro, 11, 2), savgol_filter(amateur, 11, 2)
     
     dtw_dists = [dtw_distance(swings_pro[0], s) for s in [*swings_pro[1:20], *swings_amateur[:20]]]
-    labels = ['Pro']*19 + ['Amateur']*20
+    ['Pro']*19 + ['Amateur']*20
     
     if plot:
         fig, axes = plt.subplots(1, 2, figsize=tuple(config.get('output', {}).get('figsize', [10, 3])))
@@ -69,11 +67,11 @@ def analyze_golf_swing(plot: bool = False):
         axes[0].set_ylabel('Hip Angle (°)')
         axes[0].legend(frameon=False)
     
-        bp = axes[1].boxplot([dtw_dists[:19], dtw_dists[19:]], widths=0.5, patch_artist=True,
-                              boxprops=dict(facecolor='#ecf0f1', color='#2c3e50'),
-                              medianprops=dict(color='#e74c3c', linewidth=1.5),
-                              whiskerprops=dict(color='#2c3e50'),
-                              capprops=dict(color='#2c3e50'))
+        axes[1].boxplot([dtw_dists[:19], dtw_dists[19:]], widths=0.5, patch_artist=True,
+                              boxprops={'facecolor': '#ecf0f1', 'color': '#2c3e50'},
+                              medianprops={'color': '#e74c3c', 'linewidth': 1.5},
+                              whiskerprops={'color': '#2c3e50'},
+                              capprops={'color': '#2c3e50'})
         axes[1].set_xticklabels(['Pro vs Pro', 'Pro vs Amateur'])
         axes[1].set_ylabel('DTW Distance')
     
@@ -81,7 +79,7 @@ def analyze_golf_swing(plot: bool = False):
     
     logger.info(f"Golf Swing DTW: {dtw_distance(pro_sm, amateur_sm):.0f}")
 
-def generate_wine_spectra(n: int) -> Tuple[np.ndarray, np.ndarray]:
+def generate_wine_spectra(n: int) -> tuple[np.ndarray, np.ndarray]:
     wl = np.linspace(800, 2500, 200)
     red = np.array([0.5*np.exp(-((wl-1200)/150)**2) + 0.3*np.exp(-((wl-1600)/200)**2) + 
                     np.random.randn(200)*0.02 for _ in range(n//2)])
@@ -135,7 +133,7 @@ def analyze_wine_spectra(plot: bool = False):
     
     logger.info(f"Wine Classification Acc: {acc:.3f}, AUC: {auc:.3f}")
 
-def generate_chess_sequences(n: int, seq_len: int) -> Tuple[np.ndarray, np.ndarray]:
+def generate_chess_sequences(n: int, seq_len: int) -> tuple[np.ndarray, np.ndarray]:
     X, y = [], []
     for _ in range(n):
         seq = [np.random.randint(1, 20) if i < 5 else 
@@ -180,7 +178,7 @@ def analyze_chess_sequences(plot: bool = False):
     
     logger.info(f"Chess Move Prediction Acc: {acc:.3f}")
 
-def generate_protein_data(n: int, length: int) -> Tuple[list, list]:
+def generate_protein_data(n: int, length: int) -> tuple[list, list]:
     amino_acids = list('ACDEFGHIKLMNPQRSTVWY')
     sequences, structures = [], []
     
@@ -237,7 +235,7 @@ def analyze_protein_structure(plot: bool = False):
     
     logger.info(f"Protein Structure Acc: {acc:.3f}")
 
-def generate_process_data(n: int, seq_len: int) -> Tuple[np.ndarray, np.ndarray]:
+def generate_process_data(n: int, seq_len: int) -> tuple[np.ndarray, np.ndarray]:
     sequences, labels = [], []
     
     for i in range(n):
