@@ -33,7 +33,7 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
-np.random.seed(config.get('data', {}).get('seed', 42))
+np.random.seed(42)
 signalplot.apply(font_family='serif')
 
 
