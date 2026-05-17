@@ -13,3 +13,7 @@ output:
   figsize:
   - 10
   - 3
+cv:
+  n_splits: 5
+  strategy: time_series
+  gap: 0

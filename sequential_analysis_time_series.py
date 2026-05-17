@@ -252,8 +252,8 @@ def generate_protein_data(n: int, length: int) -> tuple[list, list]:
             else np.random.choice(["H", "E", "C"], p=[0.3, 0.3, 0.4])
             for aa in seq
         ]
-        pd.concat([sequences, seq])
-        pd.concat([structures, struct])
+        sequences.append(seq)
+        structures.append(struct)
 
     return sequences, structures
 
@@ -325,7 +325,7 @@ def generate_process_data(n: int, seq_len: int) -> tuple[np.ndarray, np.ndarray]
             temp = 200 + 5 * np.sin(t) + np.random.randn(seq_len) * 1
             pressure = 100 + 3 * np.cos(t * 1.5) + np.random.randn(seq_len) * 0.5
             flow = 50 + 2 * np.sin(t * 2) + np.random.randn(seq_len) * 0.3
-            pd.concat([labels, 0])
+            labels.append(0)
         else:
             anom_type = np.random.choice(["drift", "spike", "oscillation"])
             if anom_type == "drift":
@@ -342,7 +342,7 @@ def generate_process_data(n: int, seq_len: int) -> tuple[np.ndarray, np.ndarray]
                 temp = 200 + 15 * np.sin(t * 5) + np.random.randn(seq_len) * 1
                 pressure = 100 + 10 * np.cos(t * 3) + np.random.randn(seq_len) * 0.5
                 flow = 50 + 8 * np.sin(t * 4) + np.random.randn(seq_len) * 0.3
-            pd.concat([labels, 1])
+            labels.append(1)
 
         sequences.append(np.column_stack([temp, pressure, flow]))
 
