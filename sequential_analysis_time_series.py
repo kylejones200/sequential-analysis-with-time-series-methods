@@ -26,9 +26,7 @@ def load_config(config_path=None):
         return _yaml.safe_load(_f) or {}
 
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 np.random.seed(42)
 signalplot.apply(font_family="serif")
@@ -62,26 +60,17 @@ def analyze_golf_swing(plot: bool = False):
     swings_pro, swings_amateur = generate_swings(50)
     pro, amateur = swings_pro[0], swings_amateur[0]
     pro_sm, amateur_sm = savgol_filter(pro, 11, 2), savgol_filter(amateur, 11, 2)
-
-    dtw_dists = [
-        dtw_distance(swings_pro[0], s)
-        for s in [*swings_pro[1:20], *swings_amateur[:20]]
-    ]
+    dtw_dists = [dtw_distance(swings_pro[0], s) for s in [*swings_pro[1:20], *swings_amateur[:20]]]
     ["Pro"] * 19 + ["Amateur"] * 20
-
     if plot:
         fig, axes = plt.subplots(
             1, 2, figsize=tuple(config.get("output", {}).get("figsize", [10, 3]))
         )
-
         axes[0].plot(pro_sm, label="Professional", linewidth=1.5, color="#2c3e50")
-        axes[0].plot(
-            amateur_sm, label="Amateur", linewidth=1.5, color="#e74c3c", linestyle="--"
-        )
+        axes[0].plot(amateur_sm, label="Amateur", linewidth=1.5, color="#e74c3c", linestyle="--")
         axes[0].set_xlabel("Frame")
         axes[0].set_ylabel("Hip Angle (°)")
         axes[0].legend(frameon=False)
-
         axes[1].boxplot(
             [dtw_dists[:19], dtw_dists[19:]],
             widths=0.5,
@@ -93,7 +82,6 @@ def analyze_golf_swing(plot: bool = False):
         )
         axes[1].set_xticklabels(["Pro vs Pro", "Pro vs Amateur"])
         axes[1].set_ylabel("DTW Distance")
-
         signalplot.save("sequential_golf_swing.png")
 
     logger.info(f"Golf Swing DTW: {dtw_distance(pro_sm, amateur_sm):.0f}")
@@ -142,37 +130,26 @@ def extract_spectral_features(X: np.ndarray) -> pd.DataFrame:
 def analyze_wine_spectra(plot: bool = False):
     X, y = generate_wine_spectra(200)
     X_feat = extract_spectral_features(X)
-    X_train, X_test, y_train, y_test = train_test_split(
-        X_feat, y, test_size=0.3, random_state=42
-    )
-
+    X_train, X_test, y_train, y_test = train_test_split(X_feat, y, test_size=0.3, random_state=42)
     clf = RandomForestClassifier(n_estimators=100, random_state=42)
     clf.fit(X_train, y_train)
     acc = accuracy_score(y_test, clf.predict(X_test))
     auc = roc_auc_score(y_test, clf.predict_proba(X_test)[:, 1])
-
     if plot:
         fig, axes = plt.subplots(
             1, 2, figsize=tuple(config.get("output", {}).get("figsize", [10, 3]))
         )
-
-        axes[0].plot(
-            X[y == 0].mean(axis=0), label="Red", linewidth=1.5, color="#c0392b"
-        )
-        axes[0].plot(
-            X[y == 1].mean(axis=0), label="White", linewidth=1.5, color="#f39c12"
-        )
+        axes[0].plot(X[y == 0].mean(axis=0), label="Red", linewidth=1.5, color="#c0392b")
+        axes[0].plot(X[y == 1].mean(axis=0), label="White", linewidth=1.5, color="#f39c12")
         axes[0].set_xlabel("Wavelength Index")
         axes[0].set_ylabel("Absorbance")
         axes[0].legend(frameon=False)
-
         feat_imp = pd.Series(clf.feature_importances_, index=X_feat.columns).nlargest(4)
         axes[1].barh(range(len(feat_imp)), feat_imp.values, color="#34495e", height=0.6)
         axes[1].set_yticks(range(len(feat_imp)))
         axes[1].set_yticklabels(feat_imp.index)
         axes[1].set_xlabel("Importance")
         axes[1].invert_yaxis()
-
         signalplot.save("sequential_wine_spectra.png")
 
     logger.info(f"Wine Classification Acc: {acc:.3f}, AUC: {auc:.3f}")
@@ -196,7 +173,6 @@ def generate_chess_sequences(n: int, seq_len: int) -> tuple[np.ndarray, np.ndarr
 
 def analyze_chess_sequences(plot: bool = False):
     X, y = generate_chess_sequences(500, 20)
-
     X_feat = pd.DataFrame(
         {
             "last_move": X[:, -1],
@@ -206,33 +182,25 @@ def analyze_chess_sequences(plot: bool = False):
             "range": X.max(axis=1) - X.min(axis=1),
         }
     )
-
-    X_train, X_test, y_train, y_test = train_test_split(
-        X_feat, y, test_size=0.3, random_state=42
-    )
-
+    X_train, X_test, y_train, y_test = train_test_split(X_feat, y, test_size=0.3, random_state=42)
     clf = RandomForestClassifier(n_estimators=100, max_depth=10, random_state=42)
     clf.fit(X_train, y_train)
     acc = accuracy_score(y_test, clf.predict(X_test))
-
     if plot:
         fig, axes = plt.subplots(
             1, 2, figsize=tuple(config.get("output", {}).get("figsize", [10, 3]))
         )
-
         for i in range(5):
             axes[0].plot(X[i], alpha=0.5, linewidth=1, color="#7f8c8d")
         axes[0].set_xlabel("Move Number")
         axes[0].set_ylabel("Move ID")
-
-        feat_imp = pd.Series(
-            clf.feature_importances_, index=X_feat.columns
-        ).sort_values(ascending=True)
+        feat_imp = pd.Series(clf.feature_importances_, index=X_feat.columns).sort_values(
+            ascending=True
+        )
         axes[1].barh(range(len(feat_imp)), feat_imp.values, color="#27ae60", height=0.6)
         axes[1].set_yticks(range(len(feat_imp)))
         axes[1].set_yticklabels(feat_imp.index)
         axes[1].set_xlabel("Importance")
-
         signalplot.save("sequential_chess_moves.png")
 
     logger.info(f"Chess Move Prediction Acc: {acc:.3f}")
@@ -241,7 +209,6 @@ def analyze_chess_sequences(plot: bool = False):
 def generate_protein_data(n: int, length: int) -> tuple[list, list]:
     amino_acids = list("ACDEFGHIKLMNPQRSTVWY")
     sequences, structures = [], []
-
     for _ in range(n):
         seq = [np.random.choice(amino_acids) for _ in range(length)]
         struct = [
@@ -264,12 +231,8 @@ def encode_aa(aa: str) -> int:
 
 def analyze_protein_structure(plot: bool = False):
     sequences, structures = generate_protein_data(200, 50)
-
     X = np.array([[encode_aa(aa) for aa in seq] for seq in sequences])
-    y = np.array(
-        [1 if s[25] == "H" else (2 if s[25] == "E" else 0) for s in structures]
-    )
-
+    y = np.array([1 if s[25] == "H" else (2 if s[25] == "E" else 0) for s in structures])
     X_feat = pd.DataFrame(
         {
             "center": X[:, 25],
@@ -279,37 +242,26 @@ def analyze_protein_structure(plot: bool = False):
             "window_std": X[:, 20:30].std(axis=1),
         }
     )
-
-    X_train, X_test, y_train, y_test = train_test_split(
-        X_feat, y, test_size=0.3, random_state=42
-    )
-
+    X_train, X_test, y_train, y_test = train_test_split(X_feat, y, test_size=0.3, random_state=42)
     clf = RandomForestClassifier(n_estimators=100, random_state=42)
     clf.fit(X_train, y_train)
     acc = accuracy_score(y_test, clf.predict(X_test))
-
     struct_names = ["Coil", "Helix", "Sheet"]
     counts = pd.Series(y_train).value_counts().sort_index()
     colors = ["#95a5a6", "#e74c3c", "#3498db"]
-
     if plot:
         fig, axes = plt.subplots(
             1, 2, figsize=tuple(config.get("output", {}).get("figsize", [10, 3]))
         )
-
-        axes[0].bar(
-            struct_names, [counts.get(i, 0) for i in range(3)], color=colors, width=0.6
-        )
+        axes[0].bar(struct_names, [counts.get(i, 0) for i in range(3)], color=colors, width=0.6)
         axes[0].set_ylabel("Count")
-
-        feat_imp = pd.Series(
-            clf.feature_importances_, index=X_feat.columns
-        ).sort_values(ascending=True)
+        feat_imp = pd.Series(clf.feature_importances_, index=X_feat.columns).sort_values(
+            ascending=True
+        )
         axes[1].barh(range(len(feat_imp)), feat_imp.values, color="#9b59b6", height=0.6)
         axes[1].set_yticks(range(len(feat_imp)))
         axes[1].set_yticklabels(feat_imp.index)
         axes[1].set_xlabel("Importance")
-
         signalplot.save("sequential_protein_structure.png")
 
     logger.info(f"Protein Structure Acc: {acc:.3f}")
@@ -317,10 +269,8 @@ def analyze_protein_structure(plot: bool = False):
 
 def generate_process_data(n: int, seq_len: int) -> tuple[np.ndarray, np.ndarray]:
     sequences, labels = [], []
-
     for i in range(n):
         t = np.linspace(0, 10, seq_len)
-
         if i < n * 0.8:
             temp = 200 + 5 * np.sin(t) + np.random.randn(seq_len) * 1
             pressure = 100 + 3 * np.cos(t * 1.5) + np.random.randn(seq_len) * 0.5
@@ -369,25 +319,19 @@ def extract_process_features(X: np.ndarray) -> pd.DataFrame:
 def analyze_industrial_process(plot: bool = False):
     X, y = generate_process_data(500, 100)
     X_feat = extract_process_features(X)
-
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X_feat)
-
     detector = IsolationForest(contamination=0.2, random_state=42)
     detector.fit(X_scaled[y == 0])
-
     y_pred = (detector.predict(X_scaled) == -1).astype(int)
     acc = accuracy_score(y, y_pred)
-
     from sklearn.metrics import precision_score, recall_score
 
     prec, rec = precision_score(y, y_pred), recall_score(y, y_pred)
-
     if plot:
         fig, axes = plt.subplots(
             1, 2, figsize=tuple(config.get("output", {}).get("figsize", [10, 3]))
         )
-
         normal_idx, anom_idx = np.where(y == 0)[0][0], np.where(y == 1)[0][0]
         for idx, ax, label in [
             (normal_idx, axes[0], "Normal"),
@@ -409,13 +353,11 @@ def analyze_industrial_process(plot: bool = False):
 
 def main():
     logger.info("\nSequential Analysis with Time Series Methods\n")
-
     analyze_golf_swing()
     analyze_wine_spectra()
     analyze_chess_sequences()
     analyze_protein_structure()
     analyze_industrial_process()
-
     logger.info("\nOutputs: 5 PNG files\n")
 
 

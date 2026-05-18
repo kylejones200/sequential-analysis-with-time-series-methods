@@ -9,9 +9,11 @@ from scipy.signal import savgol_filter
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import TimeSeriesSplit
+from tensorflow.keras.layers import LSTM, Dense
+from tensorflow.keras.models import Sequential
 from torch.utils.data import DataLoader, TensorDataset
 
-
+logger = logging.getLogger(__name__)
 class _LSTMForecaster(nn.Module):
     """LSTM forecaster (auto-generated PyTorch replacement for Keras Sequential)."""
 
@@ -88,38 +90,25 @@ def _train_torch(
 
 
 def simulated_joint_angle_data_degrees() -> None:
-    logger = logging.getLogger(__name__)
-
+    logging.getLogger(__name__)
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
     )
-
     "\n    Pose Analysis: Golf Swing Evaluation\n    Goal:\n    Analyze the sequence of joint angles during a golf swing to identify inefficiencies.\n    "
-
     swing_data = np.sin(np.linspace(0, 2 * np.pi, 100)) * 30 + 90
-
     smoothed_swing = savgol_filter(swing_data, window_length=11, polyorder=2)
-
     plt.plot(swing_data, label="Original Data")
-
     plt.plot(smoothed_swing, label="Smoothed Data", linestyle="--")
-
     plt.title("Golf Swing: Hip Angle Analysis")
-
     plt.xlabel("Sequence Index")
-
     plt.ylabel("Angle (Degrees)")
-
     plt.legend()
-
     plt.savefig("Golf Swing Hip Angle Analysis.png")
-
     plt.show()
 
 
 def simulated_spectral_data() -> None:
     "\n    Spectral Analysis: Wine Classification\n    Goal: Identify wine type based on spectroscopic data.\n"
-
     data = pd.DataFrame(
         {
             "Peak1": [1.2, 0.8, 1.0, 1.5, 0.9],
@@ -128,49 +117,28 @@ def simulated_spectral_data() -> None:
             "WineType": ["Red", "White", "Red", "Red", "White"],
         }
     )
-
     X = data[["Peak1", "Peak2", "Peak3"]]
-
     y = data["WineType"]
-
     tscv = TimeSeriesSplit(n_splits=3)
-
     train_idx, test_idx = list(tscv.split(X))[-1]
-
     X_train, X_test = (X.iloc[train_idx], X.iloc[test_idx])
-
     y_train, y_test = (y.iloc[train_idx], y.iloc[test_idx])
-
     model = RandomForestClassifier()
-
     _train_torch(model, X_train, y_train)
-
     y_pred = _predict_torch(model, X_test)
-
     logger.info(f"Accuracy: {accuracy_score(y_test, y_pred)}")
-
     "\n    Chess Move Prediction\n    Goal: Predict the next move in a chess game based on prior moves.\n    "
-
     chess_sequences = [[1, 2, 3, 4, 5], [5, 4, 3, 2, 1], [3, 2, 1, 4, 5]]
-
     next_moves = [6, 1, 6]
-
     X = preprocessing.sequence.pad_sequences(chess_sequences, maxlen=5)
-
     y = utils.to_categorical(next_moves, num_classes=7)
-
     model = Sequential(
         [Embedding(input_dim=7, output_dim=4), LSTM(32), Dense(7, activation="softmax")]
     )
-
     _train_torch(model, X, y)
-
     test_sequence = [[1, 2, 3, 4, 0]]
-
     test_sequence = preprocessing.sequence.pad_sequences(test_sequence, maxlen=5)
-
     prediction = _predict_torch(model, test_sequence)
-
     logger.info("Predicted Next Move:", prediction.argmax())
 
 
