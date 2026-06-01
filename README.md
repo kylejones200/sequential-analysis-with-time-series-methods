@@ -11,14 +11,7 @@ Sequential data represents ordered observations where the sequence carries signi
 
 1. [Order Dependency: Each observation is influenced by its position in the sequence.] 2. [Cyclic Patterns: Some sequences exhibit recurring patterns (e.g., yoga flows or periodic spectral peaks in wine analysis).] 3. [Multidimensionality: Sequences often involve multiple variables evolving together, such as joint angles in a golf swing or RGB spectra in wine analysis.]
 
-## About
 
-Place the code for this article in this repository.
-The original article export is saved as `article.md`.
-
-## Files
-
-Add your `.ipynb`, `.py`, `.yaml`, `.js`, `.ts`, or other project files here.
 
 ## Disclaimer
 

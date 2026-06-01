@@ -1,5 +1,8 @@
 import logging
 
+import matplotlib
+
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -9,106 +12,57 @@ from scipy.signal import savgol_filter
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import TimeSeriesSplit
-from tensorflow.keras.layers import LSTM, Dense
-from tensorflow.keras.models import Sequential
 from torch.utils.data import DataLoader, TensorDataset
 
 logger = logging.getLogger(__name__)
-class _LSTMForecaster(nn.Module):
-    """LSTM forecaster (auto-generated PyTorch replacement for Keras Sequential)."""
+logging.basicConfig(level=logging.INFO)
 
-    def __init__(
-        self,
-        n_features: int,
-        hidden: int = 32,
-        output_size: int = 7,
-        n_layers: int = 1,
-        dropout: float = 0.0,
-    ):
+
+class _SeqClassifier(nn.Module):
+    def __init__(self, n_features: int, n_classes: int, hidden: int = 32):
         super().__init__()
-        self.lstm = nn.LSTM(
-            n_features,
-            hidden,
-            num_layers=n_layers,
-            batch_first=True,
-            dropout=dropout if n_layers > 1 else 0,
-        )
-        self.drop = nn.Dropout(dropout)
-        self.fc = nn.Linear(hidden, output_size)
+        self.lstm = nn.LSTM(n_features, hidden, batch_first=True)
+        self.fc = nn.Linear(hidden, n_classes)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         out, _ = self.lstm(x)
-        return self.fc(self.drop(out[:, -1, :]))
+        return self.fc(out[:, -1, :])
 
 
-def _predict_torch(model: nn.Module, X_test) -> "np.ndarray":
-    """Replace model.predict()."""
-    model.eval()
-    with torch.no_grad():
-        return model(torch.FloatTensor(X_test)).numpy()
-
-
-def _train_torch(
-    model: nn.Module,
-    X_train,
-    y_train,
-    *,
-    epochs: int = 50,
-    batch_size: int = 32,
-    lr: float = 0.001,
-    validation_split: float = 0.2,
-    patience: int = 15,
-) -> nn.Module:
-    """Standard training loop replacing  + model.fit()."""
+def _train_torch(model, X_train, y_train, *, epochs=20, n_classes=2):
     X_t = torch.FloatTensor(X_train)
-    y_t = torch.FloatTensor(y_train)
-    if y_t.dim() == 1:
-        y_t = y_t.unsqueeze(1)
-    n_val = max(1, int(len(X_t) * validation_split))
-    X_val, y_val = (X_t[-n_val:], y_t[-n_val:])
-    X_tr, y_tr = (X_t[:-n_val], y_t[:-n_val])
-    loader = DataLoader(TensorDataset(X_tr, y_tr), batch_size=batch_size, shuffle=True)
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-    criterion = nn.MSELoss()
-    best, wait = (float("inf"), 0)
+    y_t = torch.LongTensor(y_train)
+    loader = DataLoader(TensorDataset(X_t, y_t), batch_size=16, shuffle=True)
+    opt = torch.optim.Adam(model.parameters(), lr=0.01)
+    crit = nn.CrossEntropyLoss()
     for _ in range(epochs):
         model.train()
         for xb, yb in loader:
-            optimizer.zero_grad()
-            criterion(model(xb), yb).backward()
-            optimizer.step()
-        model.eval()
-        with torch.no_grad():
-            val_loss = criterion(model(X_val), y_val).item()
-        if val_loss < best:
-            best, wait = (val_loss, 0)
-        else:
-            wait += 1
-            if wait >= patience:
-                break
+            opt.zero_grad()
+            crit(model(xb), yb).backward()
+            opt.step()
     return model
 
 
+def _predict_torch(model, X_test):
+    model.eval()
+    with torch.no_grad():
+        logits = model(torch.FloatTensor(X_test))
+        return logits.argmax(dim=1).numpy()
+
+
 def simulated_joint_angle_data_degrees() -> None:
-    logging.getLogger(__name__)
-    logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
-    )
-    "\n    Pose Analysis: Golf Swing Evaluation\n    Goal:\n    Analyze the sequence of joint angles during a golf swing to identify inefficiencies.\n    "
     swing_data = np.sin(np.linspace(0, 2 * np.pi, 100)) * 30 + 90
     smoothed_swing = savgol_filter(swing_data, window_length=11, polyorder=2)
     plt.plot(swing_data, label="Original Data")
     plt.plot(smoothed_swing, label="Smoothed Data", linestyle="--")
     plt.title("Golf Swing: Hip Angle Analysis")
-    plt.xlabel("Sequence Index")
-    plt.ylabel("Angle (Degrees)")
     plt.legend()
-    plt.savefig("Golf Swing Hip Angle Analysis.png")
-    plt.show()
+    plt.savefig("golf_swing_hip_angle.png")
+    plt.close()
 
 
 def simulated_spectral_data() -> None:
-    "\n    Spectral Analysis: Wine Classification\n    Goal: Identify wine type based on spectroscopic data.\n"
     data = pd.DataFrame(
         {
             "Peak1": [1.2, 0.8, 1.0, 1.5, 0.9],
@@ -117,29 +71,24 @@ def simulated_spectral_data() -> None:
             "WineType": ["Red", "White", "Red", "Red", "White"],
         }
     )
-    X = data[["Peak1", "Peak2", "Peak3"]]
-    y = data["WineType"]
+    X = data[["Peak1", "Peak2", "Peak3"]].values
+    y = (data["WineType"] == "Red").astype(int).values
     tscv = TimeSeriesSplit(n_splits=3)
     train_idx, test_idx = list(tscv.split(X))[-1]
-    X_train, X_test = (X.iloc[train_idx], X.iloc[test_idx])
-    y_train, y_test = (y.iloc[train_idx], y.iloc[test_idx])
-    model = RandomForestClassifier()
-    _train_torch(model, X_train, y_train)
-    y_pred = _predict_torch(model, X_test)
-    logger.info(f"Accuracy: {accuracy_score(y_test, y_pred)}")
-    "\n    Chess Move Prediction\n    Goal: Predict the next move in a chess game based on prior moves.\n    "
-    chess_sequences = [[1, 2, 3, 4, 5], [5, 4, 3, 2, 1], [3, 2, 1, 4, 5]]
-    next_moves = [6, 1, 6]
-    X = preprocessing.sequence.pad_sequences(chess_sequences, maxlen=5)
-    y = utils.to_categorical(next_moves, num_classes=7)
-    model = Sequential(
-        [Embedding(input_dim=7, output_dim=4), LSTM(32), Dense(7, activation="softmax")]
-    )
-    _train_torch(model, X, y)
-    test_sequence = [[1, 2, 3, 4, 0]]
-    test_sequence = preprocessing.sequence.pad_sequences(test_sequence, maxlen=5)
-    prediction = _predict_torch(model, test_sequence)
-    logger.info("Predicted Next Move:", prediction.argmax())
+    X_train, X_test = X[train_idx], X[test_idx]
+    y_train, y_test = y[train_idx], y[test_idx]
+    rf = RandomForestClassifier(random_state=42)
+    rf.fit(X_train, y_train)
+    logger.info("Wine RF accuracy: %.3f", accuracy_score(y_test, rf.predict(X_test)))
+
+    chess_sequences = np.array([[1, 2, 3, 4, 5], [5, 4, 3, 2, 1], [3, 2, 1, 4, 5]], dtype=np.float32)
+    next_moves = np.array([5, 0, 5])
+    X_seq = chess_sequences.reshape(len(chess_sequences), 5, 1)
+    model = _SeqClassifier(1, n_classes=7)
+    _train_torch(model, X_seq, next_moves, epochs=15, n_classes=7)
+    test_sequence = np.array([[1, 2, 3, 4, 0]], dtype=np.float32).reshape(1, 5, 1)
+    pred = _predict_torch(model, test_sequence)
+    logger.info("Predicted next move index: %s", int(pred[0]))
 
 
 def main() -> None:
