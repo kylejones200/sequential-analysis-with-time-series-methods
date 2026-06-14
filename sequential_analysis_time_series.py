@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import signalplot
+import yaml
 from scipy.signal import find_peaks, savgol_filter
 from sklearn.ensemble import IsolationForest, RandomForestClassifier
 from sklearn.metrics import accuracy_score, roc_auc_score
@@ -23,13 +24,14 @@ def load_config(config_path=None):
     if not config_path.exists():
         return {}
     with open(config_path) as _f:
-        return _yaml.safe_load(_f) or {}
+        return yaml.safe_load(_f) or {}
 
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
-np.random.seed(42)
-signalplot.apply(font_family="serif")
+config = load_config()
+np.random.seed(config.get("data", {}).get("seed", 42))
+signalplot.apply(font_family=config.get("output", {}).get("font_family", "serif"))
 
 
 def dtw_distance(seq1: np.ndarray, seq2: np.ndarray) -> float:
@@ -351,14 +353,15 @@ def analyze_industrial_process(plot: bool = False):
     logger.info(f"Anomaly Detection Acc: {acc:.3f}, Prec: {prec:.3f}, Rec: {rec:.3f}")
 
 
-def main():
+def main(*, plot: bool = True):
     logger.info("\nSequential Analysis with Time Series Methods\n")
-    analyze_golf_swing()
-    analyze_wine_spectra()
-    analyze_chess_sequences()
-    analyze_protein_structure()
-    analyze_industrial_process()
-    logger.info("\nOutputs: 5 PNG files\n")
+    analyze_golf_swing(plot=plot)
+    analyze_wine_spectra(plot=plot)
+    analyze_chess_sequences(plot=plot)
+    analyze_protein_structure(plot=plot)
+    analyze_industrial_process(plot=plot)
+    if plot:
+        logger.info("\nOutputs: sequential_*.png (5 figures)\n")
 
 
 if __name__ == "__main__":
