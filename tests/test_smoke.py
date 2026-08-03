@@ -56,3 +56,10 @@ def test_config_yaml_is_parseable() -> None:
     yaml = pytest.importorskip("yaml")
     data = yaml.safe_load(config.read_text(encoding="utf-8"))
     assert data is not None or data is None
+
+
+def test_load_config_from_main_module() -> None:
+    import sequential_analysis_time_series as module
+
+    assert isinstance(module.config, dict)
+    assert module.load_config()["data"]["seed"] == 42
